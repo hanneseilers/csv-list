@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CSV-Tabelle</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c2330;--mut:#667085;--bd:#d9dee7;--ac:#2457d6;--acbg:#e8eefc;--hl:#fff1a8}
+@media (prefers-color-scheme:dark){:root{--bg:#12151b;--card:#1b2029;--fg:#e6e9ef;--mut:#98a2b3;--bd:#2d3542;--ac:#7da2ff;--acbg:#243253;--hl:#5c4d00}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
+header{padding:14px 16px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:20}
+h1{font-size:17px;margin:0 0 8px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select,button{font:inherit;color:var(--fg);background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:6px 9px}
+button{cursor:pointer}button:hover{border-color:var(--ac)}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+#q{flex:1;min-width:220px}
+.cnt{color:var(--mut);margin-left:auto}
+.panel{display:none;background:var(--card);border:1px solid var(--bd);border-radius:8px;margin:10px 16px;padding:10px 12px}
+.panel.open{display:block}
+.cols{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:2px 12px}
+.cols label{display:flex;gap:6px;align-items:center;cursor:pointer;padding:2px 0}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 16px 0}
+.chip{background:var(--acbg);color:var(--ac);border-radius:99px;padding:2px 6px 2px 10px;display:flex;gap:6px;align-items:center;font-size:12.5px}
+.chip button{border:0;background:none;padding:0 4px;color:inherit;font-weight:bold}
+.wrap{margin:10px 16px 24px;overflow:auto;max-height:calc(100vh - 150px);border:1px solid var(--bd);border-radius:8px;background:var(--card)}
+table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%}
+th,td{padding:6px 9px;border-bottom:1px solid var(--bd);border-right:1px solid var(--bd);text-align:left;vertical-align:top;max-width:340px}
+td{overflow-wrap:anywhere}
+td.c{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+tr.x td.c{white-space:normal}
+thead th{position:sticky;top:0;background:var(--card);z-index:5;font-weight:600}
+thead tr.f th{top:var(--h1,32px);z-index:4;padding:4px;font-weight:400}
+th .t{cursor:pointer;user-select:none;display:flex;gap:4px;justify-content:space-between;align-items:center}
+th .t span.ar{color:var(--ac)}
+th .hide{border:0;background:none;color:var(--mut);padding:0 2px;font-size:12px}
+.f input{width:100%;min-width:90px;padding:3px 6px;font-size:12.5px}
+.ms{position:relative}
+.ms>button{width:100%;text-align:left;padding:3px 6px;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.ms>button.on{background:var(--acbg);border-color:var(--ac);color:var(--ac)}
+.dd{position:fixed;background:var(--card);border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 24px #0004;padding:6px;z-index:50;max-height:300px;overflow:auto;min-width:240px}
+.dd button.it{display:block;width:100%;text-align:left;border:0;padding:3px 6px}
+.dd button.it:hover{background:var(--acbg)}
+.dd label{display:flex;gap:6px;padding:2px 4px;cursor:pointer;align-items:flex-start}
+.dd label:hover{background:var(--acbg)}
+.dd .n{color:var(--mut);margin-left:auto;padding-left:8px}
+.rng{display:flex;gap:3px}.rng input{min-width:0;width:50%}
+tbody tr:hover td{background:var(--acbg)}
+tbody td:first-child,thead th:first-child{position:sticky;left:0;background:var(--card)}
+thead th:first-child{z-index:6}
+tbody tr{cursor:pointer}
+tbody tr.sel td{background:var(--acbg)}
+#side{position:fixed;top:0;right:0;height:100vh;width:30vw;min-width:min(340px,100vw);background:var(--card);border-left:1px solid var(--bd);box-shadow:-8px 0 28px #0003;z-index:40;overflow:auto;transform:translateX(105%);transition:transform .18s ease;padding:0 16px 24px}
+#side.open{transform:none}
+#side .sh{position:sticky;top:0;background:var(--card);display:flex;gap:8px;align-items:flex-start;justify-content:space-between;padding:14px 0 10px;border-bottom:1px solid var(--bd);margin-bottom:8px}
+#side .sh h2{font-size:15px;margin:0;line-height:1.35}
+#side .sh .sub{color:var(--mut);font-size:12.5px;font-weight:400;display:block;margin-top:2px}
+#side .sh button{border:0;background:none;font-size:18px;line-height:1;padding:2px 6px;color:var(--mut)}
+#side dt{color:var(--mut);font-size:12px;margin-top:12px}
+#side dd{margin:2px 0 0;overflow-wrap:anywhere}
+mark{background:var(--hl);color:inherit;padding:0 1px;border-radius:2px}
+a{color:var(--ac)}
+.empty{padding:30px;text-align:center;color:var(--mut)}
+</style>
+</head>
+<body>
+<header>
+ <h1><span id="ttl"></span> <button id="bfile" style="font-weight:400;margin-left:8px">📂 Datei wählen…</button><input type="file" id="file" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden></h1>
+ <div class="bar">
+  <input id="q" type="search" placeholder="Volltextsuche (mehrere Wörter = UND, in allen Spalten)…">
+  <button id="bcols">Spalten</button>
+  <button id="badd" title="Ausgeblendete Spalten wieder einblenden">＋ Ausgeblendet</button>
+  <button id="breset">Filter zurücksetzen</button>
+  <label title="Nur sichtbare Spalten exportieren" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="onlyvis" checked style="padding:0">nur sichtbare Spalten</label>
+  <button id="bexp" class="p">CSV exportieren</button>
+  <span class="cnt" id="cnt"></span>
+ </div>
+</header>
+<div class="panel" id="pcols">
+ <div class="bar" style="margin-bottom:6px"><button id="call">Alle</button><button id="cnone">Keine</button><button id="cdef">Standard</button></div>
+ <div class="cols" id="collist"></div>
+</div>
+<div class="chips" id="chips"></div>
+<div class="wrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table><div class="empty" id="empty" hidden></div><div class="empty" id="morebox" hidden><button id="more"></button></div></div>
+
+<aside id="side" aria-hidden="true"></aside>
+<script>
+const EMBEDDED=null; // {name, delim, h:[...], r:[[...]]} oder null
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const norm=s=>s.toLowerCase();
+const num=v=>v===""?NaN:parseFloat(v.replace(",","."));
+const isUrl=v=>/^https?:\/\/\S+$/.test(v);
+let CSV_NAME="",DELIM=";",H=[],R=[],NC=0,numCols=[],vals=[],kind=[],titleCol=-1,S={};
+const rep=i=>[...vals[i]].filter(([v,n])=>n>=2);   // wählbare Werte: mind. 2 Vorkommen
+const defVis=()=>H.map((h,i)=>vals[i].size>1||!vals[i].has(""));  // komplett leere Spalten standardmäßig ausblenden
+
+function load(name,delim,h,r){
+  CSV_NAME=name;DELIM=delim;H=h;R=r;NC=h.length;
+  numCols=H.map((_,i)=>R.some(x=>x[i]!=="")&&R.every(x=>x[i]===""||/^-?\d+([.,]\d+)?$/.test(x[i])));
+  vals=H.map((_,i)=>{const m=new Map();R.forEach(x=>m.set(x[i],(m.get(x[i])||0)+1));return m});
+  kind=H.map((_,i)=>numCols[i]?"num":rep(i).length>0?"ms":"txt");
+  // Titelspalte für den Detailbereich: nicht-numerische, nicht-URL-Spalte mit den meisten verschiedenen Werten
+  titleCol=-1;let best=0;
+  H.forEach((_,i)=>{if(numCols[i])return;
+    const filled=R.filter(x=>x[i]!=="");if(filled.length<R.length/2||filled.some(x=>isUrl(x[i])))return;
+    if(vals[i].size>best){best=vals[i].size;titleCol=i}});
+  S={q:"",vis:defVis(),ms:H.map(()=>new Set()),txt:H.map(()=>""),min:H.map(()=>""),max:H.map(()=>""),sort:-1,dir:1};
+  hideSide();closeDd();$("q").value="";limit=PAGE;
+  $("ttl").textContent=name||"Keine Datei geladen";document.title=name?name+" – CSV-Tabelle":"CSV-Tabelle";
+  $("empty").textContent=R.length?"Keine Treffer.":"Bitte eine CSV-Datei auswählen oder hierher ziehen.";
+  syncCols();apply();
+}
+
+/* CSV einlesen (Trennzeichen automatisch, Anführungszeichen, Zeilenumbrüche in Feldern) */
+function parseCSV(text){
+  if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+  let delim=";",bestN=-1;
+  for(const d of [";",",","\t","|"]){
+    let n=0,q=false;
+    for(let i=0;i<text.length&&(text[i]!=="\n"||q);i++){const c=text[i];if(c==='"')q=!q;else if(c===d&&!q)n++}
+    if(n>bestN){bestN=n;delim=d}
+  }
+  const rows=[];let row=[],f="",q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=c}
+    else if(c==='"'&&f==="")q=true;
+    else if(c===delim){row.push(f);f=""}
+    else if(c==="\n"||c==="\r"){if(c==="\r"&&text[i+1]==="\n")i++;row.push(f);f="";rows.push(row);row=[]}
+    else f+=c;
+  }
+  if(f!==""||row.length){row.push(f);rows.push(row)}
+  const data=rows.filter(r=>r.some(c=>c.trim()!==""));
+  if(!data.length)return null;
+  const n=Math.max(...data.map(r=>r.length));
+  const seen=new Map();
+  const h=Array.from({length:n},(_,i)=>{let s=(data[0][i]||"").trim()||"Spalte "+(i+1);
+    const k=seen.get(s)||0;seen.set(s,k+1);return k?s+" ("+(k+1)+")":s});
+  const r=data.slice(1).map(x=>Array.from({length:n},(_,i)=>x[i]??""));
+  return {delim,h,r};
+}
+async function openFile(file){
+  if(!file)return;
+  const buf=await file.arrayBuffer();let text;
+  try{text=new TextDecoder("utf-8",{fatal:true}).decode(buf)}catch(_){text=new TextDecoder("windows-1252").decode(buf)}
+  const p=parseCSV(text);
+  if(!p){alert("Die Datei enthält keine Daten.");return}
+  load(file.name,p.delim,p.h,p.r);
+}
+
+let view=[],limit=500;const PAGE=500;
+function apply(){
+  limit=PAGE;
+  const terms=norm(S.q).split(/\s+/).filter(Boolean);
+  const tx=S.txt.map(norm);
+  view=R.filter(r=>{
+    for(let i=0;i<NC;i++){
+      if(kind[i]==="ms"&&S.ms[i].size&&!S.ms[i].has(r[i]))return false;
+      if(kind[i]!=="num"&&tx[i]&&!norm(r[i]).includes(tx[i]))return false;
+      if(kind[i]==="num"){const n=num(r[i]);
+        if(S.min[i]!==""&&!(n>=+S.min[i]))return false;
+        if(S.max[i]!==""&&!(n<=+S.max[i]))return false;}
+    }
+    if(terms.length){const h=norm(r.join("\u0001"));for(const t of terms)if(!h.includes(t))return false}
+    return true;
+  });
+  if(S.sort>=0){const i=S.sort,d=S.dir;
+    view=view.slice().sort((a,b)=>{
+      if(kind[i]==="num"){const x=num(a[i]),y=num(b[i]);
+        if(isNaN(x)&&isNaN(y))return 0;if(isNaN(x))return 1;if(isNaN(y))return -1;return (x-y)*d}
+      return a[i].localeCompare(b[i],"de")*d});
+  }
+  renderBody();chips();$("cnt").textContent=`${view.length} von ${R.length} Einträgen`;
+  $("empty").hidden=view.length>0;
+}
+
+function hl(s){
+  s=esc(s);const terms=S.q.trim().split(/\s+/).filter(Boolean).map(t=>esc(t).replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+  if(!terms.length)return s;
+  return s.replace(new RegExp("("+terms.join("|")+")","gi"),"<mark>$1</mark>");
+}
+function cell(v){
+  if(isUrl(v)){const d=v.replace(/^https?:\/\/(www\.)?/,"");return `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer">${hl(d.length>45?d.slice(0,44)+"…":d)}</a>`}
+  if(/^[^\s@]+@[^\s@]+\.\w+$/.test(v))return `<a href="mailto:${esc(v)}">${hl(v)}</a>`;
+  return hl(v);
+}
+function renderBody(){
+  const cols=[...H.keys()].filter(i=>S.vis[i]);
+  const shown=view.slice(0,limit);
+  $("morebox").hidden=view.length<=limit;$("more").textContent=`Weitere ${Math.min(PAGE,view.length-limit)} Zeilen anzeigen (${shown.length} von ${view.length} sichtbar)`;
+  $("tbody").innerHTML=shown.map((r,ri)=>`<tr data-i="${ri}"${r===sel?' class="sel"':""}>`+cols.map(i=>`<td class="c" title="${esc(r[i])}">${cell(r[i])}</td>`).join("")+"</tr>").join("");
+}
+function renderHead(){
+  const cols=[...H.keys()].filter(i=>S.vis[i]);
+  let a="<tr>",b='<tr class="f">';
+  for(const i of cols){
+    a+=`<th><div class="t" data-s="${i}"><span>${esc(H[i])}${S.sort===i?` <span class="ar">${S.dir>0?"▲":"▼"}</span>`:""}</span><button class="hide" data-h="${i}" title="Spalte ausblenden">✕</button></div></th>`;
+    let f="";
+    if(kind[i]==="ms"){const n=S.ms[i].size,tx=S.txt[i];f=`<div class="ms"><button data-m="${i}" class="${n||tx?"on":""}">${n?n+" gewählt":tx?"„"+esc(tx)+"“":"Alle"} ▾</button></div>`}
+    else if(kind[i]==="num")f=`<div class="rng"><input data-n="min${i}" type="number" placeholder="von" value="${S.min[i]}"><input data-n="max${i}" type="number" placeholder="bis" value="${S.max[i]}"></div>`;
+    else f=`<input data-t="${i}" placeholder="enthält…" value="${esc(S.txt[i])}">`;
+    b+=`<th>${f}</th>`;
+  }
+  $("thead").innerHTML=a+"</tr>"+b+"</tr>";
+  document.documentElement.style.setProperty("--h1",$("thead").rows[0].offsetHeight+"px");
+}
+function chips(){
+  const c=[];
+  if(S.q)c.push(["Suche: "+S.q,()=>{S.q="";$("q").value=""}]);
+  H.forEach((h,i)=>{
+    S.ms[i].forEach(v=>c.push([`${h}: ${v||"(leer)"}`,()=>S.ms[i].delete(v)]));
+    if(S.txt[i])c.push([`${h} enthält „${S.txt[i]}“`,()=>S.txt[i]=""]);
+    if(S.min[i]!==""||S.max[i]!=="")c.push([`${h}: ${S.min[i]||"…"}–${S.max[i]||"…"}`,()=>{S.min[i]=S.max[i]=""}]);
+  });
+  $("chips").innerHTML=c.map((x,k)=>`<span class="chip">${esc(x[0])}<button data-c="${k}">✕</button></span>`).join("");
+  $("chips").onclick=e=>{const k=e.target.dataset.c;if(k==null)return;c[k][1]();renderHead();apply()};
+}
+
+/* Detailbereich */
+let sel=null;
+function fmt(v){
+  if(isUrl(v))return `<a href="${esc(v)}" target="_blank" rel="noopener noreferrer">${esc(v)}</a>`;
+  if(/^[^\s@]+@[^\s@]+\.\w+$/.test(v))return `<a href="mailto:${esc(v)}">${esc(v)}</a>`;
+  return esc(v);
+}
+function showSide(r){
+  sel=r;const s=$("side");
+  const title=titleCol>=0?r[titleCol]:"",sub="";
+  s.innerHTML=`<div class="sh"><h2>${esc(title)}<span class="sub">${esc(sub)}</span></h2><button id="sx" title="Schließen">✕</button></div><dl>`+
+    H.map((h,i)=>r[i]===""?"":`<dt>${esc(h)}</dt><dd>${fmt(r[i])}</dd>`).join("")+"</dl>";
+  s.classList.add("open");s.setAttribute("aria-hidden","false");s.scrollTop=0;
+  document.querySelectorAll("#tbody tr.sel").forEach(x=>x.classList.remove("sel"));
+}
+function hideSide(){
+  if(!sel)return;sel=null;$("side").classList.remove("open");$("side").setAttribute("aria-hidden","true");
+  document.querySelectorAll("#tbody tr.sel").forEach(x=>x.classList.remove("sel"));
+}
+$("tbody").addEventListener("click",e=>{
+  if(e.target.closest("a"))return;
+  const tr=e.target.closest("tr");if(!tr)return;
+  showSide(view[+tr.dataset.i]);tr.classList.add("sel");
+});
+document.addEventListener("click",e=>{
+  if(!sel)return;
+  if(e.target.closest("#side")&&!e.target.closest("#sx"))return;
+  if(e.target.closest("#tbody tr"))return;
+  hideSide();
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")hideSide()});
+
+/* Mehrfachauswahl-Dropdown */
+let dd=null,ddBtn=null;
+function place(){
+  if(!ddBtn.isConnected){closeDd();return}
+  const r=ddBtn.getBoundingClientRect();
+  dd.style.left=Math.max(4,Math.min(r.left,innerWidth-dd.offsetWidth-8))+"px";
+  dd.style.top=Math.max(4,Math.min(r.bottom+4,innerHeight-dd.offsetHeight-8))+"px";
+}
+function closeDd(){if(dd){dd.remove();dd=null}}
+function openDd(btn){
+  closeDd();const i=+btn.dataset.m;
+  dd=document.createElement("div");dd.className="dd";
+  const items=rep(i).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0],"de"));
+  dd.innerHTML=`<div style="display:flex;gap:6px;margin-bottom:4px"><input data-dt placeholder="enthält…" value="${esc(S.txt[i])}" style="flex:1;min-width:0"><button data-x="clr">Leeren</button></div><div style="color:var(--mut);font-size:12px;margin-bottom:4px">Einzelwerte (nur 1×) sind nur über „Alle“ sichtbar</div>`+items.map(([v,n])=>`<label><input type="checkbox" value="${esc(v)}" ${S.ms[i].has(v)?"checked":""}><span>${esc(v)||"<i>(leer)</i>"}</span><span class="n">${n}</span></label>`).join("");
+  document.body.appendChild(dd);
+  ddBtn=btn;place();
+  dd.oninput=e=>{if(e.target.dataset.dt!=null){S.txt[i]=e.target.value;upd(btn,i);apply()}};
+  dd.onchange=e=>{if(e.target.dataset.dt!=null)return;const v=e.target.value;e.target.checked?S.ms[i].add(v):S.ms[i].delete(v);upd(btn,i);apply()};
+  dd.onclick=e=>{if(e.target.dataset.x==="clr"){S.ms[i].clear();S.txt[i]="";dd.querySelectorAll("input[type=checkbox]").forEach(c=>c.checked=false);upd(btn,i);apply()}};
+}
+function upd(btn,i){const n=S.ms[i].size,tx=S.txt[i];btn.textContent=(n?n+" gewählt":tx?"„"+tx+"“":"Alle")+" ▾";btn.classList.toggle("on",!!(n||tx))}
+
+/* Events */
+$("q").oninput=e=>{S.q=e.target.value;apply()};
+$("thead").addEventListener("click",e=>{
+  const h=e.target.closest("[data-h]");if(h){S.vis[+h.dataset.h]=false;syncCols();return}
+  const m=e.target.closest("[data-m]");if(m){e.stopPropagation();openDd(m);return}
+  const s=e.target.closest("[data-s]");if(s){const i=+s.dataset.s;if(S.sort===i)S.dir*=-1;else{S.sort=i;S.dir=1}renderHead();apply()}
+});
+$("thead").addEventListener("input",e=>{
+  const d=e.target.dataset;
+  if(d.t!=null)S.txt[+d.t]=e.target.value;
+  else if(d.n){const k=d.n.slice(0,3),i=+d.n.slice(3);S[k][i]=e.target.value}
+  else return;apply();
+});
+document.addEventListener("click",e=>{if(dd&&!dd.contains(e.target)&&!e.target.closest("[data-m],#badd"))closeDd()});
+function addMenu(){
+  const hid=[...H.keys()].filter(i=>!S.vis[i]);
+  if(!hid.length){closeDd();return}
+  if(!dd){dd=document.createElement("div");dd.className="dd";document.body.appendChild(dd);
+    dd.onclick=e=>{const b=e.target.closest("button");if(!b)return;e.stopPropagation();
+      if(b.dataset.all!=null)S.vis.fill(true);else S.vis[+b.dataset.a]=true;
+      syncCols();addMenu()}}
+  ddBtn=$("badd");
+  dd.innerHTML=`<button class="it" data-all><b>Alle einblenden</b></button>`+hid.map(i=>`<button class="it" data-a="${i}">＋ ${esc(H[i])}</button>`).join("");
+  place();
+}
+$("badd").onclick=e=>{e.stopPropagation();if(dd&&ddBtn===$("badd")){closeDd();return}closeDd();addMenu()};
+addEventListener("scroll",e=>{if(dd&&!dd.contains(e.target))place()},true);addEventListener("resize",()=>dd&&place());
+$("bcols").onclick=()=>$("pcols").classList.toggle("open");
+function syncCols(){
+  $("collist").innerHTML=H.map((h,i)=>`<label><input type="checkbox" data-v="${i}" ${S.vis[i]?"checked":""}>${esc(h)}</label>`).join("");
+  renderHead();renderBody();
+  const n=S.vis.filter(v=>!v).length;$("badd").textContent="＋ Ausgeblendet ("+n+")";$("badd").disabled=!n;
+}
+$("collist").onchange=e=>{S.vis[+e.target.dataset.v]=e.target.checked;renderHead();renderBody()};
+$("call").onclick=()=>{S.vis.fill(true);syncCols()};
+$("cnone").onclick=()=>{S.vis.fill(false);S.vis[0]=true;syncCols()};
+$("cdef").onclick=()=>{S.vis=defVis();syncCols()};
+$("breset").onclick=()=>{S.q="";$("q").value="";S.ms.forEach(s=>s.clear());S.txt.fill("");S.min.fill("");S.max.fill("");S.sort=-1;renderHead();apply()};
+
+/* Export */
+$("bexp").onclick=()=>{
+  const cols=[...H.keys()].filter(i=>!$("onlyvis").checked||S.vis[i]);
+  const q=v=>'"'+v.replace(/"/g,'""')+'"',D=DELIM;
+  const lines=[cols.map(i=>q(H[i])).join(D),...view.map(r=>cols.map(i=>q(r[i])).join(D))];
+  const blob=new Blob(["﻿"+lines.join("\r\n")+"\r\n"],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download=(CSV_NAME||"export").replace(/\.(csv|tsv|txt)$/i,"")+"_gefiltert.csv";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+};
+
+$("bfile").onclick=()=>$("file").click();
+$("file").onchange=e=>{openFile(e.target.files[0]);e.target.value=""};
+addEventListener("dragover",e=>e.preventDefault());
+addEventListener("drop",e=>{e.preventDefault();openFile(e.dataTransfer.files[0])});
+$("more").onclick=()=>{limit+=PAGE;renderBody()};
+if(EMBEDDED)load(EMBEDDED.name,EMBEDDED.delim,EMBEDDED.h,EMBEDDED.r);else load("",";",["Spalte 1"],[]);
+</script>
+</body>
+</html>
